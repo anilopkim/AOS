@@ -1,7 +1,7 @@
 
 # AOS/LFR: Python Bindings for the Light-Field Renderer for Airborne Optical Sectioning
 
-This is a python wrapper for the [C++ Light-Field Renderer](../README.md) for Airborne Optical Sectioning. 
+This is a python wrapper for the [C++ Light-Field Renderer](../LFR/README.md) for Airborne Optical Sectioning.
 
 ## Install
 
@@ -31,7 +31,7 @@ window = pyaos.PyGlfwWindow( r, w, 'AOS' )
 # init the light-field renderer
 aos = pyaos.PyAOS( r, w, fovDegrees )
 # upload a digital terrain in an OBJ format
-aos.loadDEM( "../data/plane.obj" )
+aos.loadDEM( "zero_plane.obj" )
 
 # add (mutiple) single images (single image, pose, name)
 aos.addView( img, pose, "01" )

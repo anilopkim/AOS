@@ -30,7 +30,8 @@ def imshow(image, *args, **kwargs):
 
 if __name__ == '__main__':
     
-    if 'window' not in locals() or window == None: 
+    window = locals().get('window')
+    if window is None:
         window = init_window() # only init the window once (causes problems if closed and loaded again!)
     fov = 50.815436217896945
     # init the light-field renderer

@@ -37,6 +37,9 @@
 python/pyaos.cp37-win_amd64.pyd
 python/pyaos.cpp
 */__pycache__
+.ruff_cache/
+node_modules/
+target/
 .vscode/settings.json
 AOS\ for\ Own\ Projects/LFR/python/__pycache__/LFR_utils.cpython-37.pyc
 img/raw/*

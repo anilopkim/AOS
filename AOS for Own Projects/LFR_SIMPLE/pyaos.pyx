@@ -10,14 +10,14 @@ import json
 import os
 #import cv2
 
-cdef extern from "../include/glm/glm.hpp" namespace "glm":
+cdef extern from "../LFR/include/glm/glm.hpp" namespace "glm":
     ctypedef struct mat4:
         pass
     ctypedef struct vec3:
         pass   
 
 
-cdef extern from "../include/AOS.h": # defines the source C++ file
+cdef extern from "../LFR/include/AOS.h": # defines the source C++ file
     cdef cppclass AOS:
         AOS(unsigned int width, unsigned int height, float fovDegree, int preallocate_images) except +
         void loadDEM(string obj_file)
@@ -46,14 +46,14 @@ cdef extern from *:
         int c; #// number of channels
         float *data; #// data
 
-cdef extern from "../src/glm_utils.cpp":
+cdef extern from "../LFR/src/glm_utils.cpp":
     mat4 make_mat4_from_float(char *pdata)
     mat4 make_mat4_from_floatarr(float* pdata)
     vec3 make_vec3_from_float(char* pdata)
     void get_float_ptr_mat(mat4* m, float* floatarr)
     void get_float_ptr_vec(vec3* m, float* floatarr)
 
-cdef extern from "../src/py_utils.cpp":
+cdef extern from "../LFR/src/py_utils.cpp":
     ctypedef struct GLFWwindow :
         pass
     # ToDo -> this here definitlely is wrong right now.

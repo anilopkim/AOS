@@ -41,7 +41,7 @@ Communication with the drone is only supported on Unix systems (e.g., the Raspbe
 To compile the required shared object file, change the current directory to [`DRONE`](/DRONE) and execute the following shell command:
 
 ```sh
-cc -fPIC -sshhared -std=c++17 -o dronecommunication.so dronecommunication.c
+cc -fPIC -shared -std=c17 -o dronecommunication.so dronecommunication.c
 ```
 
 ## Quick tutorial

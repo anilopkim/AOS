@@ -9,7 +9,6 @@ import json
 import utm
 import math
 import threading
-from scipy import interpolate
 import matplotlib.pyplot as plt
 import logging
 from statistics import mean 
@@ -631,8 +630,23 @@ def compute_grid( utm_center, area_size, tile_size  ):
     x = [0, 1, 1, 0] #left-bottom; right-bottom; right-top; left-top
     y = [0, 0, 1, 1]
 
-    fes = interpolate.interp2d(x, y, es, kind='linear')
-    fns = interpolate.interp2d(x, y, ns, kind='linear')
+    # ``scipy.interpolate.interp2d`` was removed in SciPy 1.14.  The source
+    # points form a rectangle, so a small bilinear interpolator is sufficient
+    # and preserves interp2d's ``(len(y), len(x))`` return convention.
+    def bilinear(values):
+        z00, z10, z11, z01 = values
+
+        def evaluate(x_values, y_values):
+            xx, yy = np.meshgrid(np.asarray(x_values), np.asarray(y_values))
+            return ((1 - xx) * (1 - yy) * z00
+                    + xx * (1 - yy) * z10
+                    + xx * yy * z11
+                    + (1 - xx) * yy * z01)
+
+        return evaluate
+
+    fes = bilinear(es)
+    fns = bilinear(ns)
 
 
     

@@ -75,28 +75,9 @@ If Node.js is not already installed:
    ```
 2. Run:
    ```bash
-   npm init -y
+   npm install
    ```
-   - This creates a `package.json`.  
-3. Open `package.json` in a text editor and add make sure `"main": "launcher.mjs"` is there, Example:
-   ```jsonc
-    {
-      "name": "aos-waypoint-planning",
-      "version": "1.0.0",
-      "description": "",
-      "main": "launcher.mjs",
-      "keywords": [],
-      "author": "",
-      "license": "ISC",
-      "dependencies": {
-        "express": ""
-      }
-    }
-
-   ```
-
-> **Why?**  
-> By setting `"type": "module"`, Node will treat every `.mjs` file in this folder as an ES module. Without it, `import … from 'express'` would fail.
+   The repository includes `package.json` and `package-lock.json`, so this installs the tested Express version and keeps the setup reproducible.
 
 ---
 
@@ -105,11 +86,10 @@ If Node.js is not already installed:
 Stay in the same directory (`AOS waypoint planning`) in the terminal and run:
 
 ```bash
-npm install express
+npm ci
 ```
 
-- This will add `"express": "^x.x.x"` under `"dependencies"` in `package.json`.  
-- It will also create `node_modules/` folder and `package-lock.json` file.
+This installs the exact dependency versions recorded in `package-lock.json`.
 
 ---
 

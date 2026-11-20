@@ -21,6 +21,15 @@ from email.mime.text import MIMEText
 import asyncio
 import aiohttp
 import aiofiles
+from typing import NamedTuple
+
+
+class WayPointInfoCheck(NamedTuple):
+    latitude: int
+    longitude: int
+    altitude: int
+    calibration_waypoint: bool
+    stop: bool
 
 #TODo:- Do Dense and Coarse Planning similarily using this function -- independent of compass 
 def GenerateGPSGridInfo(CenterUTMCoordinates, DEMCenterUTMInfo,GridSideLength, AreaSideLength, AreaSideWidth, RotationAngle = 0):

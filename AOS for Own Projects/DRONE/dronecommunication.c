@@ -1,10 +1,11 @@
+#define _DEFAULT_SOURCE
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
 #include <termios.h>		
 #include <stdlib.h>
-
-#include <curses.h>
+#include <stdint.h>
 //#include <stdio.h>
 //#include <string.h>
 //#include <termios.h>		

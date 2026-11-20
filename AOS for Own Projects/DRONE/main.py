@@ -40,7 +40,7 @@ test_server = True
 if test_server :
     from ServerUpload import ServerUpload
 
-from DroneCom import DroneCommunication
+from DroneCom import DroneCommunication, ReadNewGPSReceivedLogFiles
 from LFR_utils import hdr_mean_adjust
 from PathVisualizer import Visualizer
 from utils import download_file

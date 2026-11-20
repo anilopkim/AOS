@@ -305,7 +305,8 @@ class Renderer :
             cur_file_path = Path(__file__).resolve().parent
             weightsXmlFile = os.path.join(cur_file_path, '..', 'DET',"weights",self._yoloversion+'.xml')
             if self._Render == True or self._Detect == True :
-                if 'window' not in locals() or window == None: 
+                window = locals().get('window')
+                if window is None:
                     window = init_window() # only init the window once (causes problems if closed and loaded again!)
                 fov = self._FieldofView
                 # init the light-field renderer

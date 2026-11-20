@@ -1,0 +1,13 @@
+{
+  "name": "aos-waypoint-planning",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "launcher.mjs",
+  "scripts": {
+    "start": "node launcher.mjs"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

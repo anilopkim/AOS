@@ -5,3 +5,6 @@ cython
 utm
 matplotlib
 scipy
+aiofiles
+aiohttp
+openvino

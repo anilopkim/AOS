@@ -26,22 +26,18 @@ import cv2
 import numpy as np
 try:
     from openvino.inference_engine import IECore
+    OPENVINO_API = "legacy"
 except ImportError as e:
-    """OpenVino is not initialized. Make sure it is installed and the environment variables are set.
-    You can run the following command on Windows:
-    ```sh
-    "C:\Program Files (x86)\IntelSWTools\openvino\bin\setupvars.bat"
-    ```
-
-    On Linux the command is:
-    ```sh
-    source /opt/intel/openvino_*/bin/setupvars.sh
-    ```
-    """
-    print( "ERROR: OpenVino is not initialized. Make sure it is installed and the environment variables are set \n \
-        by running \"C:\\Program Files (x86)\\IntelSWTools\\openvino\\bin\\setupvars.bat\" on Windows or \n \
-        \"source /opt/intel/openvino_*/bin/setupvars.sh\" on Unix" )
-    print( "Traceback: " + str(e) ) # print traceback!
+    try:
+        # OpenVINO 2022.1 and newer use the Runtime API. The legacy
+        # ``openvino.inference_engine`` package was removed in later releases.
+        from openvino import Core
+        OPENVINO_API = "runtime"
+    except ImportError:
+        raise ImportError(
+            "OpenVINO is required for AOS person detection. Install it with "
+            "`python -m pip install openvino`."
+        ) from e
 
 
 
@@ -98,14 +94,21 @@ class YoloParams:
         self.coords = 4 if 'coords' not in param else int(param['coords'])
         self.classes = 80 if 'classes' not in param else int(param['classes'])
         self.side = side
-        self.anchors = [10.0, 13.0, 16.0, 30.0, 33.0, 23.0, 30.0, 61.0, 62.0, 45.0, 59.0, 119.0, 116.0, 90.0, 156.0,
-                        198.0,
-                        373.0, 326.0] if 'anchors' not in param else [float(a) for a in param['anchors'].split(',')]
+        default_anchors = [10.0, 13.0, 16.0, 30.0, 33.0, 23.0, 30.0, 61.0,
+                           62.0, 45.0, 59.0, 119.0, 116.0, 90.0, 156.0,
+                           198.0, 373.0, 326.0]
+        anchors = param.get('anchors', default_anchors)
+        if isinstance(anchors, str):
+            anchors = anchors.split(',')
+        self.anchors = [float(a) for a in anchors]
 
         self.isYoloV3 = False
 
         if param.get('mask'):
-            mask = [int(idx) for idx in param['mask'].split(',')]
+            mask = param['mask']
+            if isinstance(mask, str):
+                mask = mask.split(',')
+            mask = [int(idx) for idx in mask]
             self.num = len(mask)
 
             maskedAnchors = []
@@ -270,6 +273,26 @@ def get_objects(output, net, new_frame_height_width, source_height_width, prob_t
     return objects
 
 
+def get_objects_runtime(output, model, new_frame_height_width, source_height_width,
+                        prob_threshold, is_proportional):
+    """Parse YOLO outputs produced by the current OpenVINO Runtime API."""
+    objects = []
+    for output_index, output_port in enumerate(model.outputs):
+        out_blob = np.asarray(output[output_index])
+        result_node = output_port.get_node()
+        region_node = result_node.input_value(0).get_node()
+        params = YoloParams(region_node.get_attributes(), out_blob.shape[2])
+        objects += parse_yolo_region(
+            out_blob,
+            new_frame_height_width,
+            source_height_width,
+            params,
+            prob_threshold,
+            is_proportional,
+        )
+    return objects
+
+
 def filter_objects(objects, iou_threshold, prob_threshold):
     # Filtering overlapping boxes with respect to the --iou_threshold CLI parameter
     objects = sorted(objects, key=lambda obj : obj['confidence'], reverse=True)
@@ -313,7 +336,7 @@ def await_requests_completion(requests):
 
 class Detector():
     def __init__(self):
-        self.ie = IECore()
+        self.ie = IECore() if OPENVINO_API == "legacy" else Core()
         self.net = []
 
         self.keep_aspect_ratio = True
@@ -327,6 +350,27 @@ class Detector():
 
         # ------------- 1. Plugin initialization for specified device and load extensions library if specified -------------
         log.info("Creating Inference Engine...")
+        if OPENVINO_API == "runtime":
+            log.info("Loading network with the OpenVINO Runtime API")
+            self.net = self.ie.read_model(model=model, weights=os.path.splitext(model)[0] + ".bin")
+            assert len(self.net.inputs) == 1, "Sample supports only YOLO based single input topologies"
+
+            self.input_port = self.net.inputs[0]
+            self.input_blob = self.input_port.any_name
+            input_shape = list(self.input_port.shape)
+            if input_shape[1] == 3:
+                self.input_height, self.input_width = input_shape[2:]
+                self.nchw_shape = True
+            else:
+                self.input_height, self.input_width = input_shape[1:3]
+                self.nchw_shape = False
+
+            compile_config = {}
+            if device == "CPU":
+                compile_config["PERFORMANCE_HINT"] = "LATENCY"
+            self.exec_net = self.ie.compile_model(self.net, device, compile_config)
+            return
+
         ie = IECore()
 
         if 'CPU' in device:
@@ -386,9 +430,12 @@ class Detector():
         start_time = perf_counter()
         # blocking:
         #   output = self.exec_net.infer(inputs={self.input_blob: frame})   
-        infer_request_handle = self.exec_net.start_async(request_id=0, inputs={self.input_blob: frame})
-        infer_status = infer_request_handle.wait()
-        output = infer_request_handle.output_blobs #[out_blob_name]     
+        if OPENVINO_API == "runtime":
+            output = self.exec_net({self.input_blob: frame})
+        else:
+            infer_request_handle = self.exec_net.start_async(request_id=0, inputs={self.input_blob: frame})
+            infer_request_handle.wait()
+            output = infer_request_handle.output_blobs #[out_blob_name]
         end_time = perf_counter()
         inf_time = end_time - start_time
         log.info('Inference Time was {} Seconds'.format(inf_time))
@@ -397,7 +444,13 @@ class Detector():
         log.info( image.shape )
 
 
-        objects = get_objects(output, self.net, (self.input_height, self.input_width), image.shape[:-1], prob_threshold, self.keep_aspect_ratio)
+        if OPENVINO_API == "runtime":
+            objects = get_objects_runtime(
+                output, self.net, (self.input_height, self.input_width),
+                image.shape[:-1], prob_threshold, self.keep_aspect_ratio
+            )
+        else:
+            objects = get_objects(output, self.net, (self.input_height, self.input_width), image.shape[:-1], prob_threshold, self.keep_aspect_ratio)
         objects = filter_objects(objects, iou_threshold, prob_threshold)
 
         if len(objects):
